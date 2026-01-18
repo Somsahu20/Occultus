@@ -1,0 +1,67 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment - CRITICAL! password/ is your venv
+venv/
+env/
+ENV/
+.venv/
+password/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+tests/
+
+# Environment files - NEVER include in Docker image
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+README.md
+docs/
+
+# Docker files (not needed inside container)
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Security test files
+sec.py
+secrets.py
+
+# Alembic versions (optional - remove if you want migrations in image)
+# alembic/versions/
+
+# Logs
+*.log
+
+# Database files
+*.db
+*.sqlite3
