@@ -41,10 +41,7 @@ def send_new_secrets(v: VaultSync, db: Session = Depends(get_db), u: User = Depe
             if v.version == 1:
                 v_dict = v.model_dump()
                 
-            
                 v_dict.update({"user_id": u.id})
-                
-
                 v_dict["encrypted_data"] = base64.b64decode(v.encrypted_data)
                 
                 new_secret = Vault(**v_dict)
