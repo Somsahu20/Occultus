@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Response
 from DB.sessions import get_db
 from sqlalchemy import Select
 from sqlalchemy.orm import Session
-from schemas.schemas import UserSend, UserResponse, VaultCreate, ValutResponse, Token
+from schemas.schemas import UserSend, UserResponse, VaultCreate, VaultResponse, Token
 import logging
 from Models.models import User, Vault
 from typing import List
@@ -29,7 +29,7 @@ def get_all_users(db: Session = Depends(get_db)):
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Can\'t process the request")
 
 #todo find the id with username
-@router.post('/users', response_model=Token)
+@router.post('/auth/register', response_model=Token)
 def create_user(res: Response, user: UserSend, db: Session = Depends(get_db)):
     try:
         user_dict = user.model_dump()

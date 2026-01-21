@@ -18,6 +18,8 @@ from utils.logger import logger
 import secrets, base64
 from typing import Union, Any
 from datetime import datetime, timedelta, timezone
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -31,30 +33,30 @@ class TokenData(BaseModel):
     username: str | None = None
 
 #!---------------Must be put in frontend later on ------------------------------
-def make_hashed_password(entered_password: str, salt_b64: str) -> str:
+# def make_hashed_password(entered_password: str, salt_b64: str) -> str:
 
-    actual_salt = base64.b64decode(salt_b64)
+#     actual_salt = base64.b64decode(salt_b64)
 
-    master_pass = entered_password.encode("utf-8")
-    mastered_raw = hash_secret_raw(
-        secret=master_pass,
-        salt=actual_salt,
-        time_cost=2,
-        memory_cost=65536,
-        parallelism=1,
-        hash_len=64,
-        type=Type.ID  
-    )
+#     master_pass = entered_password.encode("utf-8")
+#     mastered_raw = hash_secret_raw(
+#         secret=master_pass,
+#         salt=actual_salt,
+#         time_cost=2,
+#         memory_cost=65536,
+#         parallelism=1,
+#         hash_len=64,
+#         type=Type.ID  
+#     )
 
-    raw_a = mastered_raw[:32]
-    entered_key_a = base64.b64encode(raw_a).decode('utf-8')
+#     raw_a = mastered_raw[:32]
+#     entered_key_a = base64.b64encode(raw_a).decode('utf-8')
 
-    return entered_key_a
+#     return entered_key_a
 
 
 #!--------------------------------------------------------------------------------------
 
-@router.post('/auth/salt')
+@router.post('/auth/salt') #? Returns the salt in  base64 format
 def check_salt(u: UserBase, db: Session = Depends(get_db)):
 
     try: 
@@ -131,7 +133,8 @@ def get_current_user(token: str = Depends(oauth2), db: Session = Depends(get_db)
 
     return res
 
-@router.post('/token', response_model=Token)
+
+@router.post('/login', response_model=Token)
 def func_login(u: UserLogin, db: Session = Depends(get_db)): #! This userlogin model will be received from frontend since all the hashing of key_a will be done on client side. UserLogin needs mail, hashed key
     try:
         stmt = Select(User).where(User.username == u.username)

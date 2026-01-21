@@ -82,3 +82,8 @@ out/
 # Coverage
 coverage/
 *.lcov
+
+# TypeScript build cache
+*.tsbuildinfo
+# Vite cache
+.vite/

@@ -1,0 +1,7 @@
+/* App.css - Minimal global styles */
+/* Page-specific styles are in their own CSS files (Login.css, Register.css, Dashboard.css) */
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}

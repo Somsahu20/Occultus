@@ -23,17 +23,22 @@ class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 class VaultCreate(BaseModel):
-    encrypted_data: bytes
+    encrypted_data: str 
     nonce_b64: str
 
 class VaultSync(VaultCreate):
-    id: int
-    user_id: int
     version: int
 
 class VaultResponse(BaseModel):
     id: int
     encrypted_data: bytes
+    nonce_b64: str
+    version: int
+    model_config = ConfigDict(from_attributes=True)
+
+class VaultClient(BaseModel):
+    id: int
+    encrypted_data: str
     nonce_b64: str
     version: int
     model_config = ConfigDict(from_attributes=True)
