@@ -1,9 +1,5 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import { encryptVault, decryptVault } from "../crypto/aes";
-import apiClient from "../api/client";
-import { useNavigate } from "react-router-dom";
-import "./Dashboard.css";
+import { useState } from "react";
+import generator from "generate-password-ts";
 
 interface PasswordEntry {
     website: string;
@@ -11,13 +7,8 @@ interface PasswordEntry {
     password: string;
 }
 
-export const Dashboard = () => {
-    const { keyB, accessToken, setKeyB, setAccessToken } = useAuth();
-    const navigate = useNavigate();
-
+export default function Dashboard() {
     const [passwords, setPasswords] = useState<PasswordEntry[]>([]);
-    const [version, setVersion] = useState<number>(1);
-    const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
     // Form state
@@ -28,144 +19,47 @@ export const Dashboard = () => {
     // Password visibility state
     const [visiblePasswords, setVisiblePasswords] = useState<Set<number>>(new Set());
 
-    // Redirect if not logged in
-    useEffect(() => {
-        if (!keyB) {
-            console.warn("Vault Locked: No Key found in memory.");
-            navigate('/login');
-        }
-    }, [keyB, navigate]);
+    const generateStrongPassword = () => {
+        const customPassword: string = generator.generate({
+            length: 12,
+            numbers: true,
+            symbols: true,
+            uppercase: true,
+            lowercase: true,
+            excludeSimilarCharacters: true,
+            strict: true
+        });
 
-    // Fetch vault on mount
-    useEffect(() => {
-        const fetchVault = async () => {
-            if (!keyB) return;
-
-            try {
-                const response = await apiClient.get('/vaults', {
-                    headers: { Authorization: `Bearer ${accessToken}` }
-                });
-
-                if (!response.data || !response.data.encrypted_data) {
-                    // New user with empty vault
-                    setPasswords([]);
-                    setVersion(1);
-                    setLoading(false);
-                    return;
-                }
-
-            
-                setVersion(response.data.version || 1);
-
-                // Decrypt the vault
-                const decryptedData = await decryptVault(response.data, keyB);
-
-                if (Array.isArray(decryptedData)) {
-                    setPasswords(decryptedData);
-                } else {
-                    setPasswords([]);
-                }
-
-            } catch (error: any) {
-                if (error.response?.status === 404) {
-                    // No vault exists yet
-                    setPasswords([]);
-                    setVersion(1);
-                } else {
-                    console.error("Error fetching vault:", error);
-                    setStatus('error');
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchVault();
-    }, [keyB, accessToken]);
-
-    const handleAddPassword = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!keyB || !newSite || !newUser || !newPass) return;
-
-        setStatus('saving');
-
-        try {
-            const newEntry: PasswordEntry = {
-                website: newSite,
-                username: newUser,
-                password: newPass
-            };
-
-            const updatedList = [...passwords, newEntry];
-
-            // Encrypt the vault
-            const encryptedVault = await encryptVault(updatedList, keyB);
-
-            // Send to server
-            const response = await apiClient.post('/vaults', {
-                encrypted_data: encryptedVault.encrypted_data,
-                nonce_b64: encryptedVault.nonce_b64,
-                version: version
-            }, {
-                headers: { Authorization: `Bearer ${accessToken}` }
-            });
-
-            // Update UI - use server's returned version
-            setPasswords(updatedList);
-            setVersion(response.data.version);
-            setNewSite('');
-            setNewUser('');
-            setNewPass('');
-            setStatus('success');
-
-            // Reset status after 2 seconds
-            setTimeout(() => setStatus('idle'), 2000);
-
-        } catch (error) {
-            console.error("Failed to save:", error);
-            setStatus('error');
-            setTimeout(() => setStatus('idle'), 3000);
-        }
+        setNewPass(customPassword);
     };
 
-    const handleDeletePassword = async (index: number) => {
-        if (!keyB) return;
+    const handleAddPassword = () => {
+        if (!newSite || !newUser || !newPass) return;
 
         setStatus('saving');
 
-        try {
-            const updatedList = passwords.filter((_, i) => i !== index);
+        const newEntry: PasswordEntry = {
+            website: newSite,
+            username: newUser,
+            password: newPass
+        };
 
-            // Encrypt and save
-            const encryptedVault = await encryptVault(updatedList, keyB);
+        const updatedList = [...passwords, newEntry];
+        setPasswords(updatedList);
+        setNewSite('');
+        setNewUser('');
+        setNewPass('');
+        setStatus('success');
 
-            if (updatedList.length > 0){
-                const response = await apiClient.post('/vaults', {
-                    encrypted_data: encryptedVault.encrypted_data,
-                    nonce_b64: encryptedVault.nonce_b64,
-                    version: version
-                }, {
-                    headers: { Authorization: `Bearer ${accessToken}` }
-                });
-                setPasswords(updatedList);
-                setVersion(response.data.version);
-            }
-            else{
-                await apiClient.delete('/delete', {
-                    headers: { Authorization: `Bearer ${accessToken}`}
-                })
-                setPasswords([]);
-                setVersion(1); // Reset to 1 since vault was deleted
-            }
+        setTimeout(() => setStatus('idle'), 2000);
+    };
 
-            setStatus('success');
-            setTimeout(() => setStatus('idle'), 2000);
-
-        } catch (error) {
-            console.error("Failed to delete:", error);
-            setStatus('error');
-            setTimeout(() => setStatus('idle'), 3000);
-        }
+    const handleDeletePassword = (index: number) => {
+        setStatus('saving');
+        const updatedList = passwords.filter((_, i) => i !== index);
+        setPasswords(updatedList);
+        setStatus('success');
+        setTimeout(() => setStatus('idle'), 2000);
     };
 
     const copyToClipboard = async (text: string) => {
@@ -190,144 +84,147 @@ export const Dashboard = () => {
         });
     };
 
-    const handleLogout = () => {
-        setKeyB(null);
-        setAccessToken(null);
-        localStorage.removeItem('refresh_token');
-        navigate('/login');
-    };
-
-    // Loading state
-    if (loading) {
-        return (
-            <div className="loading-container">
-                <div className="loading-spinner">
-                    <div className="spinner"></div>
-                    <p>Decrypting your vault...</p>
-                </div>
-            </div>
-        );
-    }
-
-    
-    if (!keyB) return null;
-
     return (
-        <div className="dashboard-container">
-            <div className="dashboard-content">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+            <div className="max-w-4xl mx-auto p-6">
                 {/* Header */}
-                <div className="dashboard-header">
-                    <div className="dashboard-title">
-                        <h1>Your Vault</h1>
-                        <p>Zero-knowledge encrypted passwords</p>
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 className="text-4xl font-bold text-white mb-2">Your Vault</h1>
+                        <p className="text-purple-300">Zero-knowledge encrypted passwords</p>
                     </div>
-                    <button className="logout-btn" onClick={handleLogout}>
+                    <button className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                         Sign Out
                     </button>
                 </div>
 
                 {/* Add Password Card */}
-                <div className="add-password-card">
-                    <h2>Add New Password</h2>
-                    <form onSubmit={handleAddPassword} className="add-password-form">
-                        <div className="form-group">
-                            <label htmlFor="website">Website</label>
+                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 mb-6 border border-white/20">
+                    <h2 className="text-2xl font-semibold text-white mb-4">Add New Password</h2>
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="website" className="block text-sm font-medium text-purple-200 mb-2">
+                                Website
+                            </label>
                             <input
                                 id="website"
                                 type="text"
                                 value={newSite}
                                 onChange={(e) => setNewSite(e.target.value)}
                                 placeholder="e.g., github.com"
-                                required
                                 disabled={status === 'saving'}
+                                className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
                             />
                         </div>
-                        <div className="form-group">
-                            <label htmlFor="username">Username</label>
+                        <div>
+                            <label htmlFor="username" className="block text-sm font-medium text-purple-200 mb-2">
+                                Username
+                            </label>
                             <input
                                 id="username"
                                 type="text"
                                 value={newUser}
                                 onChange={(e) => setNewUser(e.target.value)}
                                 placeholder="Username or email"
-                                required
                                 disabled={status === 'saving'}
+                                className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
                             />
                         </div>
-                        <div className="form-group">
-                            <label htmlFor="newPassword">Password</label>
-                            <input
-                                id="newPassword"
-                                type="password"
-                                value={newPass}
-                                onChange={(e) => setNewPass(e.target.value)}
-                                placeholder="Enter password"
-                                required
-                                disabled={status === 'saving'}
-                            />
+                        <div>
+                            <label htmlFor="newPassword" className="block text-sm font-medium text-purple-200 mb-2">
+                                Password
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    id="newPassword"
+                                    type="text"
+                                    value={newPass}
+                                    onChange={(e) => setNewPass(e.target.value)}
+                                    placeholder="Enter password"
+                                    disabled={status === 'saving'}
+                                    className="flex-1 px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={generateStrongPassword}
+                                    disabled={status === 'saving'}
+                                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                    title="Generate a strong password"
+                                >
+                                    🎲 Generate
+                                </button>
+                            </div>
+                            <p className="mt-1 text-xs text-purple-300">
+                                Click "Generate" for a secure 12-character password
+                            </p>
                         </div>
                         <button 
-                            type="submit" 
-                            className="add-btn"
+                            type="button"
+                            onClick={handleAddPassword}
+                            className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg transition-all font-semibold disabled:opacity-50"
                             disabled={status === 'saving'}
                         >
-                            {status === 'saving' ? 'Saving...' : 'Add'}
+                            {status === 'saving' ? 'Saving...' : '➕ Add Password'}
                         </button>
-                    </form>
+                    </div>
                 </div>
 
                 {/* Password List Card */}
-                <div className="password-list-card">
-                    <div className="password-list-header">
-                        <h2>Saved Passwords</h2>
-                        <span className="password-count">{passwords.length} items</span>
+                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-2xl font-semibold text-white">Saved Passwords</h2>
+                        <span className="px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-medium">
+                            {passwords.length} items
+                        </span>
                     </div>
 
                     {passwords.length === 0 ? (
-                        <div className="empty-state">
-                            <div className="empty-icon">🔒</div>
-                            <h3>No passwords saved yet</h3>
-                            <p>Add your first password above to get started</p>
+                        <div className="text-center py-12">
+                            <div className="text-6xl mb-4">🔒</div>
+                            <h3 className="text-xl font-semibold text-white mb-2">No passwords saved yet</h3>
+                            <p className="text-purple-300">Add your first password above to get started</p>
                         </div>
                     ) : (
-                        <div className="password-list">
+                        <div className="space-y-3">
                             {passwords.map((entry, index) => (
-                                <div key={index} className="password-item">
-                                    <div className="password-field">
-                                        <span className="field-label">Website</span>
-                                        <span className="field-value website">{entry.website}</span>
+                                <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-all">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                                        <div>
+                                            <span className="text-xs text-purple-300 font-medium">Website</span>
+                                            <div className="text-white font-medium mt-1">{entry.website}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-purple-300 font-medium">Username</span>
+                                            <div className="text-white mt-1">{entry.username}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-purple-300 font-medium">Password</span>
+                                            <div className="text-white mt-1 font-mono">
+                                                {visiblePasswords.has(index) ? entry.password : '••••••••'}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="password-field">
-                                        <span className="field-label">Username</span>
-                                        <span className="field-value">{entry.username}</span>
-                                    </div>
-                                    <div className="password-field">
-                                        <span className="field-label">Password</span>
-                                        <span className="field-value masked">
-                                            {visiblePasswords.has(index) ? entry.password : '••••••••'}
-                                        </span>
-                                    </div>
-                                    <div className="password-actions">
+                                    <div className="flex gap-2">
                                         <button 
-                                            className="action-btn"
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
                                             onClick={() => togglePasswordVisibility(index)}
                                             title={visiblePasswords.has(index) ? "Hide" : "Show"}
                                         >
-                                            {visiblePasswords.has(index) ? '👁️' : '👁️‍🗨️'}
+                                            {visiblePasswords.has(index) ? '👁️ Hide' : '👁️‍🗨️ Show'}
                                         </button>
                                         <button 
-                                            className="action-btn copy"
+                                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm"
                                             onClick={() => copyToClipboard(entry.password)}
                                             title="Copy password"
                                         >
-                                            📋
+                                            📋 Copy
                                         </button>
                                         <button 
-                                            className="action-btn delete"
+                                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
                                             onClick={() => handleDeletePassword(index)}
                                             title="Delete"
                                         >
-                                            🗑️
+                                            🗑️ Delete
                                         </button>
                                     </div>
                                 </div>
@@ -338,7 +235,11 @@ export const Dashboard = () => {
 
                 {/* Status Toast */}
                 {status !== 'idle' && (
-                    <div className={`status-toast ${status}`}>
+                    <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-lg shadow-lg transform transition-all ${
+                        status === 'saving' ? 'bg-blue-600' :
+                        status === 'success' ? 'bg-green-600' :
+                        'bg-red-600'
+                    } text-white font-medium`}>
                         {status === 'saving' && '💾 Saving...'}
                         {status === 'success' && '✅ Saved successfully!'}
                         {status === 'error' && '❌ Something went wrong'}
@@ -347,4 +248,4 @@ export const Dashboard = () => {
             </div>
         </div>
     );
-};
+}
