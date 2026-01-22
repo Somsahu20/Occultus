@@ -5,6 +5,7 @@ import { arrayBufferToBase64 } from '../crypto/utils';
 import { useAuth } from '../context/AuthContext';
 import { validatePassword } from './utils';
 import './Register.css'
+import { useDocumentTitle } from '../hooks/titles';
 
 
 export const Register = () => {
@@ -13,6 +14,8 @@ export const Register = () => {
     const [status, setStatus] = useState('idle')
     const { setKeyB } = useAuth()
     const [passwordError, setPasswordError] = useState<string[]>([])
+
+    useDocumentTitle("Register")
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();

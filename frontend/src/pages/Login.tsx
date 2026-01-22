@@ -5,6 +5,7 @@ import { base64toarraybytes } from '../crypto/utils';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import "./Login.css"
+import { useDocumentTitle } from '../hooks/titles';
 
 
 export const Login = () => {
@@ -13,6 +14,8 @@ export const Login = () => {
     const [status, setStatus] = useState('idle')
     const {setKeyB, setAccessToken} = useAuth()
     const navigate = useNavigate()
+
+    useDocumentTitle("Login")
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault() //! prevents reload of the application so that js/ts can handle the data manually (like validation before sending it to api)

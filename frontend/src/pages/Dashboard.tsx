@@ -4,6 +4,7 @@ import { encryptVault, decryptVault } from "../crypto/aes";
 import apiClient from "../api/client";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
+import { useDocumentTitle } from "../hooks/titles";
 
 interface PasswordEntry {
     website: string;
@@ -11,9 +12,12 @@ interface PasswordEntry {
     password: string;
 }
 
+
 export const Dashboard = () => {
     const { keyB, accessToken, setKeyB, setAccessToken } = useAuth();
     const navigate = useNavigate();
+    
+    useDocumentTitle("Dashboard")
 
     const [passwords, setPasswords] = useState<PasswordEntry[]>([]);
     const [version, setVersion] = useState<number>(1);
@@ -27,6 +31,8 @@ export const Dashboard = () => {
 
     // Password visibility state
     const [visiblePasswords, setVisiblePasswords] = useState<Set<number>>(new Set());
+
+
 
     // Redirect if not logged in
     useEffect(() => {
