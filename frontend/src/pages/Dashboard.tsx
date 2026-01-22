@@ -4,7 +4,6 @@ import { encryptVault, decryptVault } from "../crypto/aes";
 import apiClient from "../api/client";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
-import generator from "generate-password-ts"
 
 interface PasswordEntry {
     website: string;
@@ -84,24 +83,6 @@ export const Dashboard = () => {
         fetchVault();
     }, [keyB, accessToken]);
 
-    const generateStrongPassword = async () => {
-
-        
-
-        const customPassword: string = generator.generate({
-            length: 12,        // Set the password length
-            numbers: true,     // Include numbers (default: false in the base library)
-            symbols: true,     // Include symbols (default: false in the base library)
-            uppercase: true,   // Include uppercase letters (default: true)
-            lowercase: true,   // Include lowercase letters (default: true)
-            excludeSimilarCharacters: true, // Exclude similar characters (e.g., 'i', 'l', '1')
-            strict: true       // Password must include at least one character from each pool
-          })
-
-          setNewPass(customPassword)
-          
-
-    }
 
     const handleAddPassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -285,18 +266,6 @@ export const Dashboard = () => {
                                 required
                                 disabled={status === 'saving'}
                             />
-                            <button
-                            type="button"
-                            onClick={generateStrongPassword}
-                            disabled={status === 'saving'}
-                            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                            title="Generate a strong password"
-                        >
-                            🎲 Generate
-                        </button>
-                            <p className="mt-1 text-xs text-purple-300">
-                                Click "Generate" for a secure 12-character password
-                            </p>
                         </div>
                         <button 
                             type="submit" 
