@@ -8,10 +8,8 @@ from fastapi_limiter import FastAPILimiter
 import os
 from fastapi.middleware.cors import CORSMiddleware
 
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+origins = [origin.strip() for origin in cors_origins_str.split(",")]
 
 app = FastAPI()
 app.add_middleware(
