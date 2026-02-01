@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str
     expire_minutes: int
+    vite_api_url: str
+    database_url: str
+    cors_origins: str
 
     model_config = SettingsConfigDict(env_file=str(ENV_PATH), case_sensitive=False, env_file_encoding="utf-8")
 

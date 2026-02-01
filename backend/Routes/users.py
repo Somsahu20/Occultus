@@ -45,7 +45,7 @@ def create_user(res: Response, user: UserSend, db: Session = Depends(get_db)):
 
         return {
             "access_token": access_token,
-            "refesh_token": refresh_token,
+            "refresh_token": refresh_token,
             "token_type": "bearer"
         }
 

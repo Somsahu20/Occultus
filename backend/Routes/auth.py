@@ -162,5 +162,21 @@ def func_login(u: UserLogin, db: Session = Depends(get_db)): #! This userlogin m
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail='Error in logging in')
 
 
+@router.post("/refresh")
+def refresh_access_tokens(refresh_token: str):
+    try:
 
+        payload = jwt.decode(token=refresh_token, key=SECRET_KEY, algorithms=[ALGORITHM])
 
+        if payload.get("type") != "refresh":
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Invalid token type")
+
+        username = payload.get("sub")
+        new_access_token = create_access_token(data={"sub": username})
+        
+        return {"access_token": new_access_token, "token_type": "bearer"}
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
+    except JWTError:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")

@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { registerGlobalAuthActions, unregisterGlobalAuthActions } from './authActions'
 
 interface AuthContextType {
     keyB: Uint8Array | null
@@ -20,6 +21,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setAccessToken(null)
         localStorage.removeItem('refresh_token')
     }
+
+    // Register global setters when component mounts
+    useEffect(() => {
+        registerGlobalAuthActions(setAccessToken, logout)
+        return () => {
+            unregisterGlobalAuthActions()
+        }
+    }, [])
 
     return (
         <AuthContext.Provider value={{

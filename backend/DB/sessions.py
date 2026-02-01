@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 import psycopg2
 from config.configs import settings
 
-DATABASE_URL = f"postgresql://{settings.db_user}:{settings.password}@{settings.db_host}/{settings.db_name}"
+DATABASE_URL = settings.database_url
 
 engine = create_engine(url=DATABASE_URL, echo=True)
 sessionmaker = sessionmaker(bind=engine, autoflush=False, expire_on_commit=True)
